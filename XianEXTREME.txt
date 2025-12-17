@@ -1,12 +1,39 @@
+# ==================================================
+# FiveM Boost FPS PRO EXTREME
+# Shop: Xiancode
+# KeyAuth: Hidden (Split + Base64 Decode)
+# ==================================================
+
 $SHOP_NAME = "Xiancode"
 
-# KeyAuth
-$APP_NAME = "XianEXTREME"
-$OWNER_ID = "nZcd3x2EX9"
-$SECRET   = "9b0a1bb14b2691321ea81ffc4fafb080213bc6cc1355babdf0db5969bf8ffbb7"
-$VERSION  = "1.0"
+# ================= HIDDEN KEYAUTH =================
+function _d($x) {
+    [Text.Encoding]::UTF8.GetString(
+        [Convert]::FromBase64String($x)
+    )
+}
+
+# App Name = XianEXTREME
+$a1="WGlhbg=="; $a2="RVhU"; $a3="UkVNRQ=="
+$APP_NAME = _d($a1+$a2+$a3)
+
+# OwnerID
+$o1="blpjZDN4"; $o2="MkVYOQ=="
+$OWNER_ID = _d($o1+$o2)
+
+# Secret
+$s1="OWIwYTFiYjE0YjI2OTEz"
+$s2="MjFlYTgxZmZjNGZhZmIw"
+$s3="ODAyMTNiYzZjYzEzNTVi"
+$s4="YWJkZjBkYjU5NjliZjhm"
+$s5="ZmZiYjc="
+$SECRET = _d($s1+$s2+$s3+$s4+$s5)
+
+# Version
+$VERSION = _d("MS4w")
+
 $KEYAUTH_API = "https://keyauth.win/api/1.2/"
-# ==========================================
+# ==================================================
 
 # ================= ADMIN CHECK =================
 if (-not ([Security.Principal.WindowsPrincipal] `
@@ -22,7 +49,7 @@ function Get-HWID {
     $cpu  = (Get-CimInstance Win32_Processor).ProcessorId
     $bios = (Get-CimInstance Win32_BIOS).SerialNumber
     $disk = (Get-CimInstance Win32_PhysicalMedia | Select-Object -First 1).SerialNumber
-    return "$cpu|$bios|$disk"
+    "$cpu|$bios|$disk"
 }
 $HWID = Get-HWID
 
@@ -31,8 +58,7 @@ Clear-Host
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "   🔐 FiveM Boost FPS PRO EXTREME 🔐"
 Write-Host "=========================================="
-Write-Host " ร้าน: $SHOP_NAME"
-Write-Host ""
+Write-Host " ร้าน: $SHOP_NAME`n"
 
 $license = Read-Host "🔑 ใส่ License Key"
 
@@ -71,54 +97,38 @@ Write-Host "=========================================="
 Write-Host "[1] 🚀 BOOST FPS (EXTREME MODE)"
 Write-Host "[2] 🔄 RESTORE ค่าเดิม"
 Write-Host "[3] 📊 ดูสถานะ MMAgent"
-Write-Host "[0] ❌ ออก"
-Write-Host ""
+Write-Host "[0] ❌ ออก`n"
 
 $choice = Read-Host "เลือกเมนู"
 
 switch ($choice) {
 
-# ================= BOOST EXTREME =================
 "1" {
     Write-Host "`n🔥 เปิดโหมด EXTREME..." -ForegroundColor Red
 
-    # MEMORY
     Disable-MMAgent -MemoryCompression
-
-    # SYSMAIN
     Stop-Service SysMain -Force -ErrorAction SilentlyContinue
     Set-Service SysMain -StartupType Disabled
-
-    # POWER PLAN
     powercfg -setactive SCHEME_MIN
 
-    # CPU / GAME SCHEDULING
     reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v SystemResponsiveness /t REG_DWORD /d 0 /f >nul
     reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" /v "Scheduling Category" /t REG_SZ /d High /f >nul
     reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" /v "Priority" /t REG_DWORD /d 6 /f >nul
     reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" /v "GPU Priority" /t REG_DWORD /d 8 /f >nul
 
-    # POWER THROTTLING OFF
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v PowerThrottlingOff /t REG_DWORD /d 1 /f >nul
-
-    # MEMORY LATENCY
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v DisablePagingExecutive /t REG_DWORD /d 1 /f >nul
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v LargeSystemCache /t REG_DWORD /d 0 /f >nul
 
-    # INPUT LAG
     reg add "HKCU\Control Panel\Mouse" /v MouseSpeed /t REG_SZ /d 0 /f >nul
     reg add "HKCU\Control Panel\Mouse" /v MouseThreshold1 /t REG_SZ /d 0 /f >nul
     reg add "HKCU\Control Panel\Mouse" /v MouseThreshold2 /t REG_SZ /d 0 /f >nul
 
-    # GAME DVR / FSO OFF
     reg add "HKCU\System\GameConfigStore" /v GameDVR_Enabled /t REG_DWORD /d 0 /f >nul
     reg add "HKCU\System\GameConfigStore" /v GameDVR_FSEBehaviorMode /t REG_DWORD /d 2 /f >nul
 
-    # BACKGROUND / TELEMETRY
     reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" /v GlobalUserDisabled /t REG_DWORD /d 1 /f >nul
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f >nul
 
-    # SAFE SERVICE CUT
     $services = "DiagTrack","MapsBroker","lfsvc","SharedAccess"
     foreach ($s in $services) {
         Stop-Service $s -Force -ErrorAction SilentlyContinue
@@ -129,7 +139,6 @@ switch ($choice) {
     Write-Host "⚠ รีสตาร์ทเครื่องก่อนเข้า FiveM" -ForegroundColor Yellow
 }
 
-# ================= RESTORE =================
 "2" {
     Write-Host "`n🔄 กำลังกู้คืนระบบ..." -ForegroundColor Yellow
 
@@ -139,7 +148,6 @@ switch ($choice) {
     powercfg -setactive SCHEME_BALANCED
 
     reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v SystemResponsiveness /t REG_DWORD /d 20 /f >nul
-
     reg add "HKCU\Control Panel\Mouse" /v MouseSpeed /t REG_SZ /d 1 /f >nul
     reg add "HKCU\Control Panel\Mouse" /v MouseThreshold1 /t REG_SZ /d 6 /f >nul
     reg add "HKCU\Control Panel\Mouse" /v MouseThreshold2 /t REG_SZ /d 10 /f >nul
@@ -147,24 +155,16 @@ switch ($choice) {
     reg delete "HKCU\System\GameConfigStore" /f >nul 2>&1
     reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /f >nul 2>&1
 
-    $services = "DiagTrack","MapsBroker","lfsvc","SharedAccess"
-    foreach ($s in $services) {
+    foreach ($s in "DiagTrack","MapsBroker","lfsvc","SharedAccess") {
         Set-Service $s -StartupType Manual -ErrorAction SilentlyContinue
     }
 
     Write-Host "✅ Restore เสร็จเรียบร้อย" -ForegroundColor Green
 }
 
-# ================= STATUS =================
-"3" {
-    Get-MMAgent | Format-List
-}
-
+"3" { Get-MMAgent | Format-List }
 "0" { Exit }
-
-Default {
-    Write-Host "❌ เลือกเมนูไม่ถูกต้อง" -ForegroundColor Red
-}
+Default { Write-Host "❌ เลือกเมนูไม่ถูกต้อง" -ForegroundColor Red }
 }
 
 Pause
