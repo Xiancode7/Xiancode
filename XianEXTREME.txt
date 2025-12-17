@@ -4,6 +4,10 @@
 # KeyAuth: Hidden (Split + Base64 Decode)
 # ==================================================
 
+# ---- Fix encoding (IMPORTANT) ----
+chcp 65001 > $null
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 $SHOP_NAME = "Xiancode"
 
 # ================= HIDDEN KEYAUTH =================
@@ -39,7 +43,8 @@ $KEYAUTH_API = "https://keyauth.win/api/1.2/"
 if (-not ([Security.Principal.WindowsPrincipal] `
     [Security.Principal.WindowsIdentity]::GetCurrent()
 ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Host "❌ กรุณา Run as Administrator" -ForegroundColor Red
+
+    Write-Host "ERROR: Please run PowerShell as Administrator." -ForegroundColor Red
     Pause
     Exit
 }
@@ -55,12 +60,13 @@ $HWID = Get-HWID
 
 # ================= LOGIN =================
 Clear-Host
-Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "   🔐 FiveM Boost FPS PRO EXTREME 🔐"
 Write-Host "=========================================="
-Write-Host " ร้าน: $SHOP_NAME`n"
+Write-Host "   FiveM Boost FPS PRO EXTREME"
+Write-Host "=========================================="
+Write-Host " Shop: $SHOP_NAME"
+Write-Host ""
 
-$license = Read-Host "🔑 ใส่ License Key"
+$license = Read-Host "Enter License Key"
 
 $body = @{
     type    = "license"
@@ -75,40 +81,43 @@ $body = @{
 try {
     $res = Invoke-RestMethod -Uri $KEYAUTH_API -Method POST -Body $body
 } catch {
-    Write-Host "❌ ไม่สามารถเชื่อมต่อ License Server" -ForegroundColor Red
+    Write-Host "ERROR: Unable to connect to license server." -ForegroundColor Red
     Pause
     Exit
 }
 
 if ($res.success -ne $true) {
-    Write-Host "❌ License ไม่ถูกต้อง / หมดอายุ / HWID ไม่ตรง" -ForegroundColor Red
+    Write-Host "ERROR: Invalid license / expired / HWID mismatch." -ForegroundColor Red
     Pause
     Exit
 }
 
-Write-Host "✅ License Active | Exp: $($res.info.expiry)" -ForegroundColor Green
+Write-Host "License verified. Expiry: $($res.info.expiry)" -ForegroundColor Green
 Start-Sleep 1
 
 # ================= MENU =================
 Clear-Host
-Write-Host "==========================================" -ForegroundColor Green
-Write-Host " 🔥 FiveM Boost FPS PRO - EXTREME 🔥"
 Write-Host "=========================================="
-Write-Host "[1] 🚀 BOOST FPS (EXTREME MODE)"
-Write-Host "[2] 🔄 RESTORE ค่าเดิม"
-Write-Host "[3] 📊 ดูสถานะ MMAgent"
-Write-Host "[0] ❌ ออก`n"
+Write-Host " FiveM Boost FPS PRO - EXTREME"
+Write-Host "=========================================="
+Write-Host "[1] BOOST FPS (EXTREME MODE)"
+Write-Host "[2] RESTORE DEFAULT SETTINGS"
+Write-Host "[3] SHOW MEMORY STATUS (MMAgent)"
+Write-Host "[0] EXIT"
+Write-Host ""
 
-$choice = Read-Host "เลือกเมนู"
+$choice = Read-Host "Select option"
 
 switch ($choice) {
 
 "1" {
-    Write-Host "`n🔥 เปิดโหมด EXTREME..." -ForegroundColor Red
+    Write-Host "`nEnabling EXTREME performance mode..." -ForegroundColor Yellow
 
     Disable-MMAgent -MemoryCompression
+
     Stop-Service SysMain -Force -ErrorAction SilentlyContinue
     Set-Service SysMain -StartupType Disabled
+
     powercfg -setactive SCHEME_MIN
 
     reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v SystemResponsiveness /t REG_DWORD /d 0 /f >nul
@@ -129,25 +138,27 @@ switch ($choice) {
     reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" /v GlobalUserDisabled /t REG_DWORD /d 1 /f >nul
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f >nul
 
-    $services = "DiagTrack","MapsBroker","lfsvc","SharedAccess"
-    foreach ($s in $services) {
+    foreach ($s in "DiagTrack","MapsBroker","lfsvc","SharedAccess") {
         Stop-Service $s -Force -ErrorAction SilentlyContinue
         Set-Service $s -StartupType Disabled -ErrorAction SilentlyContinue
     }
 
-    Write-Host "`n✅ EXTREME MODE ENABLED" -ForegroundColor Green
-    Write-Host "⚠ รีสตาร์ทเครื่องก่อนเข้า FiveM" -ForegroundColor Yellow
+    Write-Host "`nEXTREME mode enabled." -ForegroundColor Green
+    Write-Host "Please restart your PC before launching FiveM." -ForegroundColor Yellow
 }
 
 "2" {
-    Write-Host "`n🔄 กำลังกู้คืนระบบ..." -ForegroundColor Yellow
+    Write-Host "`nRestoring default system settings..." -ForegroundColor Yellow
 
     Enable-MMAgent -MemoryCompression
+
     Set-Service SysMain -StartupType Automatic
     Start-Service SysMain -ErrorAction SilentlyContinue
+
     powercfg -setactive SCHEME_BALANCED
 
     reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v SystemResponsiveness /t REG_DWORD /d 20 /f >nul
+
     reg add "HKCU\Control Panel\Mouse" /v MouseSpeed /t REG_SZ /d 1 /f >nul
     reg add "HKCU\Control Panel\Mouse" /v MouseThreshold1 /t REG_SZ /d 6 /f >nul
     reg add "HKCU\Control Panel\Mouse" /v MouseThreshold2 /t REG_SZ /d 10 /f >nul
@@ -159,12 +170,18 @@ switch ($choice) {
         Set-Service $s -StartupType Manual -ErrorAction SilentlyContinue
     }
 
-    Write-Host "✅ Restore เสร็จเรียบร้อย" -ForegroundColor Green
+    Write-Host "System settings restored successfully." -ForegroundColor Green
 }
 
-"3" { Get-MMAgent | Format-List }
+"3" {
+    Get-MMAgent | Format-List
+}
+
 "0" { Exit }
-Default { Write-Host "❌ เลือกเมนูไม่ถูกต้อง" -ForegroundColor Red }
+
+Default {
+    Write-Host "Invalid selection." -ForegroundColor Red
+}
 }
 
 Pause
