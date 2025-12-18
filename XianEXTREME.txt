@@ -1,7 +1,7 @@
 # ==================================================
 # FiveM Boost FPS PRO EXTREME
 # Shop: Xiancode
-# KeyAuth API v1.3 (FIXED)
+# KeyAuth API v1.3 (WORKING)
 # ==================================================
 
 # ---- Fix encoding ----
@@ -21,9 +21,12 @@ function _d($x) {
 $a1="WGlhbg=="; $a2="RVhU"; $a3="UkVNRQ=="
 $APP_NAME = _d($a1+$a2+$a3)
 
-# OwnerID (from XianEXTREME app)
+# OwnerID
 $o1="blpjZDN4"; $o2="MkVYOQ=="
 $OWNER_ID = _d($o1+$o2)
+
+# Version (ต้องตรงกับ App)
+$VERSION = "1.0"
 
 # KeyAuth API v1.3
 $KEYAUTH_API = "https://keyauth.win/api/1.3/"
@@ -58,16 +61,17 @@ Write-Host ""
 
 $license = Read-Host "Enter License Key"
 
-$body = @{
-    type    = "license"
-    key     = $license
-    hwid    = $HWID
-    name    = $APP_NAME
-    ownerid = $OWNER_ID
-}
+# 👉 v1.3 ต้องส่งแบบ QUERY STRING เท่านั้น
+$uri = "$KEYAUTH_API" +
+       "?type=license" +
+       "&key=$license" +
+       "&hwid=$HWID" +
+       "&name=$APP_NAME" +
+       "&ownerid=$OWNER_ID" +
+       "&version=$VERSION"
 
 try {
-    $res = Invoke-RestMethod -Uri $KEYAUTH_API -Method POST -Body $body
+    $res = Invoke-RestMethod -Uri $uri -Method GET
 } catch {
     Write-Host "ERROR: Unable to connect to license server." -ForegroundColor Red
     Pause
@@ -159,10 +163,7 @@ switch ($choice) {
     Write-Host "System settings restored successfully." -ForegroundColor Green
 }
 
-"3" {
-    Get-MMAgent | Format-List
-}
-
+"3" { Get-MMAgent | Format-List }
 "0" { Exit }
 
 Default {
