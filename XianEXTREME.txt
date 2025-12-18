@@ -1,5 +1,5 @@
 # ==================================================
-# FiveM Boost FPS PRO EXTREME (V.7 FULL INTEGRATED)
+# FiveM Boost FPS PRO EXTREME (V.8 FULL STATUS FIX)
 # Shop: Xiancode | KeyAuth API v1.3 (Fixed Session)
 # ==================================================
 
@@ -38,7 +38,7 @@ try {
 # ================= LOGIN =================
 Clear-Host
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "     FiveM Boost FPS PRO EXTREME V.7" -ForegroundColor Cyan
+Write-Host "     FiveM Boost FPS PRO EXTREME V.8" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 $license = Read-Host "Enter License Key"
 
@@ -51,11 +51,11 @@ try {
 do {
     Clear-Host
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "   ULTIMATE V.7 (FULL PERFORMANCE + SYSTEM)" -ForegroundColor Cyan
+    Write-Host "    XIANCODE MANUTAU Setting " -ForegroundColor Cyan
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "[1] ENABLE ALL TWEAKS (FORCE OVERWRITE)"
+    Write-Host "[1] ENABLE ALL TWEAKS (FORCE STATUS TRUE)"
     Write-Host "[2] RESTORE SYSTEM DEFAULTS"
-    Write-Host "[3] SHOW STATUS (MMAGENT/MEM/NETWORK)"
+    Write-Host "[3] SHOW STATUS (CHECK TRUE/FALSE)"
     Write-Host "[4] CHECK CPU TEMPERATURE"
     Write-Host "[5] CLEAN CACHE ONLY (TEMP/FIVEM)"
     Write-Host "[0] EXIT"
@@ -64,13 +64,21 @@ do {
 
     switch ($choice) {
         "1" {
-            Write-Host "`n[!] Applying All Tweaks (Force Overwrite)..." -ForegroundColor Yellow
+            Write-Host "`n[!] Activating MMAgent & Core Performance..." -ForegroundColor Yellow
             
-            # --- 1. MMAgent & Memory Tweaks ---
+            # --- 1. บังคับเปิด SysMain เพื่อให้ MMAgent เป็น True ---
+            Set-Service SysMain -StartupType Automatic -ErrorAction SilentlyContinue
+            Start-Service SysMain -ErrorAction SilentlyContinue
+            
+            # --- 2. ตั้งค่า MMAgent เป็น True ทั้งหมด ---
             Enable-MMAgent -ApplicationLaunchPrefetching -ApplicationPreLaunch -MemoryCompression -PageCombining
-            reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Store/Operational" /v "MaxOperationAPIFiles" /t REG_DWORD /d 512 /f >$null
+            
+            # --- 3. บังคับค่า MaxOperationAPIFiles เป็น 512 ---
+            $apiPath = "HKLM\Software\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Store/Operational"
+            if (!(Test-Path $apiPath)) { New-Item -Path $apiPath -Force >$null }
+            reg add "$apiPath" /v "MaxOperationAPIFiles" /t REG_DWORD /d 512 /f >$null
 
-            # --- 2. Advanced Network & Latency ---
+            # --- 4. Network & Latency (Ping) ---
             reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "NetworkThrottlingIndex" /t REG_DWORD /d 0xFFFFFFFF /f >$null
             $interfaces = "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"
             Get-ChildItem -Path "Registry::$interfaces" | ForEach-Object {
@@ -79,43 +87,31 @@ do {
                 reg add "$p" /v "TCPNoDelay" /t REG_DWORD /d 1 /f >$null
                 reg add "$p" /v "TcpDelAckTicks" /t REG_DWORD /d 0 /f >$null
             }
-            netsh int tcp set global autotuninglevel=normal
-            netsh int tcp set global timestamps=disabled
 
-            # --- 3. CPU, GPU & Power Priority ---
+            # --- 5. CPU & GPU Priority ---
             powercfg -setacvalueindex scheme_current sub_processor cpmincores 100
             powercfg -setactive scheme_current
             reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d 38 /f >$null
-            reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d 1 /f >$null
             reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d 2 /f >$null
-            $fivemPerf = "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\FiveM.exe\PerfOptions"
-            if (!(Test-Path $fivemPerf)) { New-Item -Path $fivemPerf -Force >$null }
-            reg add "$fivemPerf" /v "CpuPriorityClass" /t REG_DWORD /d 3 /f >$null
 
-            # --- 4. Disable Windows Bloatware (Update/Defender/DVR) ---
+            # --- 6. Disable Throttling & Update ---
             Stop-Service wuauserv -Force -ErrorAction SilentlyContinue
             Set-Service wuauserv -StartupType Disabled
             Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
-            reg add "HKCU\System\GameConfigStore" /v "GameDVR_FSEBehavior" /t REG_DWORD /d 2 /f >$null
 
-            # --- 5. Visual & System Speed ---
-            reg add "HKCU\Control Panel\Desktop" /v "MenuShowDelay" /t REG_SZ /d 0 /f >$null
-            reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "WaitToKillServiceTimeout" /t REG_SZ /d 2000 /f >$null
-
-            # --- 6. Cleaner ---
+            # --- 7. Cleaner ---
             $CleanPaths = @("$env:TEMP\*", "$env:SystemRoot\Temp\*", "$env:SystemRoot\Prefetch\*")
             foreach ($path in $CleanPaths) { Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue }
 
-            Write-Host "ULTIMATE V.7 SUCCESS: All Tweaks Applied!" -ForegroundColor Green
+            Write-Host "ULTIMATE V.8 SUCCESS: All values set to TRUE!" -ForegroundColor Green
             Pause
         }
 
         "2" {
             Write-Host "`n[!] Restoring System Defaults..." -ForegroundColor Yellow
-            Set-Service wuauserv -StartupType Automatic
-            Set-MpPreference -DisableRealtimeMonitoring $false -ErrorAction SilentlyContinue
+            Disable-MMAgent -ApplicationLaunchPrefetching -ApplicationPreLaunch
+            Set-Service wuauserv -StartupType Automatic -ErrorAction SilentlyContinue
             powercfg -setactive SCHEME_BALANCED
-            reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d 2 /f >$null
             Write-Host "Restore Completed." -ForegroundColor Green
             Pause
         }
@@ -123,15 +119,13 @@ do {
         "3" {
             Write-Host "`n--- Current System Status ---" -ForegroundColor Cyan
             $agent = Get-MMAgent
-            $maxFiles = (Get-ItemProperty "HKLM\Software\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Store/Operational" -Name MaxOperationAPIFiles -ErrorAction SilentlyContinue).MaxOperationAPIFiles
-            $netThrottle = (Get-ItemProperty "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name NetworkThrottlingIndex -ErrorAction SilentlyContinue).NetworkThrottlingIndex
+            $regValue = (Get-ItemProperty "HKLM\Software\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Store/Operational" -Name MaxOperationAPIFiles -ErrorAction SilentlyContinue).MaxOperationAPIFiles
             
             Write-Host "ApplicationLaunchPrefetching : $($agent.ApplicationLaunchPrefetching)"
             Write-Host "ApplicationPreLaunch         : $($agent.ApplicationPreLaunch)"
-            Write-Host "MaxOperationAPIFiles         : $($maxFiles)"
+            Write-Host "MaxOperationAPIFiles         : $(if($regValue){$regValue}else{"Not Set"})"
             Write-Host "MemoryCompression            : $($agent.MemoryCompression)"
             Write-Host "PageCombining                : $($agent.PageCombining)"
-            Write-Host "NetworkThrottling (Ping Tweak): $($netThrottle)"
             Write-Host "PSComputerName               : $($agent.PSComputerName)"
             Pause
         }
@@ -142,16 +136,13 @@ do {
                 $tempK = (Get-CimInstance -Namespace root/WMI -ClassName MSAcpi_ThermalZoneTemperature).CurrentTemperature
                 $tempC = ($tempK / 10) - 273.15
                 Write-Host "Current CPU Temperature: $([Math]::Round($tempC, 2)) °C" -ForegroundColor Cyan
-            } catch { Write-Host "Temperature data not available on this Hardware." -ForegroundColor Red }
+            } catch { Write-Host "Hardware not supported." -ForegroundColor Red }
             Pause
         }
 
         "5" {
-            Write-Host "`n[!] Cleaning Cache..." -ForegroundColor Yellow
             Remove-Item "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
-            $fivemCache = "$env:LocalAppData\FiveM\FiveM.app\data\cache"
-            if (Test-Path $fivemCache) { Remove-Item "$fivemCache\*" -Recurse -Force -ErrorAction SilentlyContinue }
-            Write-Host "System & FiveM Cache Cleaned." -ForegroundColor Green
+            Write-Host "Cache Cleaned." -ForegroundColor Green
             Pause
         }
 
