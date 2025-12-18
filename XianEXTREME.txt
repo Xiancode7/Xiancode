@@ -1,10 +1,10 @@
 # ==================================================
 # FiveM Boost FPS PRO EXTREME
 # Shop: Xiancode
-# KeyAuth: Hidden (Split + Base64 Decode)
+# KeyAuth API v1.3 (FIXED)
 # ==================================================
 
-# ---- Fix encoding (IMPORTANT) ----
+# ---- Fix encoding ----
 chcp 65001 > $null
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
@@ -21,22 +21,12 @@ function _d($x) {
 $a1="WGlhbg=="; $a2="RVhU"; $a3="UkVNRQ=="
 $APP_NAME = _d($a1+$a2+$a3)
 
-# OwnerID
+# OwnerID (from XianEXTREME app)
 $o1="blpjZDN4"; $o2="MkVYOQ=="
 $OWNER_ID = _d($o1+$o2)
 
-# Secret
-$s1="OWIwYTFiYjE0YjI2OTEz"
-$s2="MjFlYTgxZmZjNGZhZmIw"
-$s3="ODAyMTNiYzZjYzEzNTVi"
-$s4="YWJkZjBkYjU5NjliZjhm"
-$s5="ZmZiYjc="
-$SECRET = _d($s1+$s2+$s3+$s4+$s5)
-
-# Version
-$VERSION = _d("MS4w")
-
-$KEYAUTH_API = "https://keyauth.win/api/1.2/"
+# KeyAuth API v1.3
+$KEYAUTH_API = "https://keyauth.win/api/1.3/"
 # ==================================================
 
 # ================= ADMIN CHECK =================
@@ -74,8 +64,6 @@ $body = @{
     hwid    = $HWID
     name    = $APP_NAME
     ownerid = $OWNER_ID
-    secret  = $SECRET
-    version = $VERSION
 }
 
 try {
@@ -87,12 +75,12 @@ try {
 }
 
 if ($res.success -ne $true) {
-    Write-Host "ERROR: Invalid license / expired / HWID mismatch." -ForegroundColor Red
+    Write-Host "ERROR: $($res.message)" -ForegroundColor Red
     Pause
     Exit
 }
 
-Write-Host "License verified. Expiry: $($res.info.expiry)" -ForegroundColor Green
+Write-Host "License verified successfully." -ForegroundColor Green
 Start-Sleep 1
 
 # ================= MENU =================
@@ -151,10 +139,8 @@ switch ($choice) {
     Write-Host "`nRestoring default system settings..." -ForegroundColor Yellow
 
     Enable-MMAgent -MemoryCompression
-
     Set-Service SysMain -StartupType Automatic
     Start-Service SysMain -ErrorAction SilentlyContinue
-
     powercfg -setactive SCHEME_BALANCED
 
     reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v SystemResponsiveness /t REG_DWORD /d 20 /f >nul
