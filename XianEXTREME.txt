@@ -1,7 +1,7 @@
 # ==================================================
 # FiveM Boost FPS PRO EXTREME
 # Shop: Xiancode
-# KeyAuth API v1.3 (FULL FIX: SESSION ID)
+# KeyAuth API v1.3 (Fixed Session)
 # ==================================================
 
 # ---- Fix encoding ----
@@ -15,7 +15,7 @@ function _d($x) {
     [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($x))
 }
 
-# ข้อมูลแอป (Base64)
+# ข้อมูลแอปของคุณ
 $APP_NAME = _d("WGlhbkVYVFJFTUU=") # XianEXTREME
 $OWNER_ID = _d("blpjZDN4MkVYOQ==") # nZcd3x2EX9
 $VERSION  = "1.0"
@@ -26,11 +26,10 @@ if (-not ([Security.Principal.WindowsPrincipal] `
     [Security.Principal.WindowsIdentity]::GetCurrent()
 ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Host "ERROR: Please run PowerShell as Administrator." -ForegroundColor Red
-    Pause
-    Exit
+    Pause ; Exit
 }
 
-# ================= HWID FUNCTION =================
+# ================= HWID =================
 function Get-HWID {
     $cpu  = (Get-CimInstance Win32_Processor).ProcessorId
     $bios = (Get-CimInstance Win32_BIOS).SerialNumber
@@ -39,27 +38,27 @@ function Get-HWID {
 }
 $HWID = Get-HWID
 
-# ================= INITIALIZE SESSION (FIX) =================
-# ขั้นตอนนี้จำเป็นสำหรับ KeyAuth v1.3 เพื่อขอ Session ID
-Write-Host "Connecting to server..." -ForegroundColor Gray
-try {
-    $init_uri = "$($KEYAUTH_API)?type=init&name=$APP_NAME&ownerid=$OWNER_ID&version=$VERSION"
-    $init_res = Invoke-RestMethod -Uri $init_uri -Method GET
+# ================= STEP 1: INITIALIZE SESSION =================
+# ส่วนนี้คือส่วนที่ขาดไปในตอนแรก ทำให้เกิด Error Session ID
+Clear-Host
+Write-Host "Connecting to KeyAuth Server..." -ForegroundColor Gray
 
+$init_url = "$($KEYAUTH_API)?type=init&name=$APP_NAME&ownerid=$OWNER_ID&version=$VERSION"
+
+try {
+    $init_res = Invoke-RestMethod -Uri $init_url -Method GET
     if ($init_res.success -ne $true) {
-        Write-Host "ERROR: Initialization failed - $($init_res.message)" -ForegroundColor Red
-        Pause
-        Exit
+        Write-Host "ERROR: Init Failed - $($init_res.message)" -ForegroundColor Red
+        Pause ; Exit
     }
-    # เก็บ Session ID ไว้ใช้ในขั้นตอน Login
+    # ดึง Session ID ที่เซิร์ฟเวอร์ส่งกลับมา
     $sessionid = $init_res.sessionid
 } catch {
-    Write-Host "ERROR: Unable to connect to KeyAuth server." -ForegroundColor Red
-    Pause
-    Exit
+    Write-Host "ERROR: Could not connect to API. Check your internet." -ForegroundColor Red
+    Pause ; Exit
 }
 
-# ================= LOGIN =================
+# ================= STEP 2: LICENSE LOGIN =================
 Clear-Host
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "     FiveM Boost FPS PRO EXTREME" -ForegroundColor Cyan
@@ -69,24 +68,22 @@ Write-Host ""
 
 $license = Read-Host "Enter License Key"
 
-# 👉 ส่ง Request พร้อม Session ID
-$login_uri = "$($KEYAUTH_API)?type=license&key=$license&hwid=$HWID&sessionid=$sessionid&name=$APP_NAME&ownerid=$OWNER_ID"
+# ต้องส่ง sessionid ไปด้วยทุกครั้งใน v1.3
+$login_url = "$($KEYAUTH_API)?type=license&key=$license&hwid=$HWID&sessionid=$sessionid&name=$APP_NAME&ownerid=$OWNER_ID"
 
 try {
-    $res = Invoke-RestMethod -Uri $login_uri -Method GET
+    $res = Invoke-RestMethod -Uri $login_url -Method GET
+    
+    if ($res.success -ne $true) {
+        Write-Host "ERROR: $($res.message)" -ForegroundColor Red
+        Pause ; Exit
+    }
 } catch {
-    Write-Host "ERROR: Unable to process license." -ForegroundColor Red
-    Pause
-    Exit
+    Write-Host "ERROR: Login request failed." -ForegroundColor Red
+    Pause ; Exit
 }
 
-if ($res.success -ne $true) {
-    Write-Host "ERROR: $($res.message)" -ForegroundColor Red
-    Pause
-    Exit
-}
-
-Write-Host "License verified successfully! Welcome." -ForegroundColor Green
+Write-Host "License verified! Redirecting to menu..." -ForegroundColor Green
 Start-Sleep -Seconds 1
 
 # ================= MENU =================
