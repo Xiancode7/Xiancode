@@ -1,143 +1,160 @@
 # ==================================================
-# FiveM Boost FPS PRO EXTREME
-# Shop: Xiancode
-# KeyAuth API v1.3 - FIXED VERSION
+# FiveM Boost FPS PRO EXTREME (V.7 FULL INTEGRATED)
+# Shop: Xiancode | KeyAuth API v1.3 (Fixed Session)
 # ==================================================
 
-# ---- ตั้งค่าการแสดงผลภาษาไทย ----
 chcp 65001 > $null
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
-$SHOP_NAME = "Xiancode"
-
 # ================= KEYAUTH CONFIG =================
-function _d($x) {
-    [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($x))
-}
-
-# ข้อมูลแอปของคุณ (เข้ารหัสไว้เพื่อความปลอดภัยเบื้องต้น)
-$APP_NAME = _d("WGlhbkVYVFJFTUU=") # XianEXTREME
-$OWNER_ID = _d("blpjZDN4MkVYOQ==") # nZcd3x2EX9
+function _d($x) { [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($x)) }
+$APP_NAME = _d("WGlhbkVYVFJFTUU=") 
+$OWNER_ID = _d("blpjZDN4MkVYOQ==") 
 $VERSION  = "1.0"
 $KEYAUTH_API = "https://keyauth.win/api/1.3/"
 
 # ================= ADMIN CHECK =================
-if (-not ([Security.Principal.WindowsPrincipal] `
-    [Security.Principal.WindowsIdentity]::GetCurrent()
-).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Host "ERROR: Please run PowerShell as Administrator." -ForegroundColor Red
     Pause ; Exit
 }
 
-# ================= GET HWID =================
+# ================= GET HWID & INIT =================
 function Get-HWID {
-    $cpu  = (Get-CimInstance Win32_Processor).ProcessorId
+    $cpu = (Get-CimInstance Win32_Processor).ProcessorId
     $bios = (Get-CimInstance Win32_BIOS).SerialNumber
     $disk = (Get-CimInstance Win32_PhysicalMedia | Select-Object -First 1).SerialNumber
     return "$cpu|$bios|$disk"
 }
 $HWID = Get-HWID
 
-# ================= [สำคัญ] STEP 1: INITIALIZE SESSION =================
-# จุดนี้คือการแก้ Error "Session ID not provided" โดยตรง
-Clear-Host
-Write-Host "Connecting to KeyAuth Server..." -ForegroundColor Gray
-
-$init_url = "$($KEYAUTH_API)?type=init&name=$APP_NAME&ownerid=$OWNER_ID&version=$VERSION"
-
+Write-Host "Connecting to Server..." -ForegroundColor Gray
 try {
-    $init_res = Invoke-RestMethod -Uri $init_url -Method GET
-    if ($init_res.success -ne $true) {
-        Write-Host "ERROR: Init Failed - $($init_res.message)" -ForegroundColor Red
-        Pause ; Exit
-    }
-    # ดึง Session ID ที่เซิร์ฟเวอร์เพิ่งสร้างให้มาเก็บไว้
+    $init_res = Invoke-RestMethod -Uri "$($KEYAUTH_API)?type=init&name=$APP_NAME&ownerid=$OWNER_ID&version=$VERSION" -Method GET
+    if ($init_res.success -ne $true) { Write-Host "Init Failed." -ForegroundColor Red ; Pause ; Exit }
     $sessionid = $init_res.sessionid
-} catch {
-    Write-Host "ERROR: Cannot connect to KeyAuth API. Please check internet." -ForegroundColor Red
-    Pause ; Exit
-}
+} catch { Write-Host "Connection Error." -ForegroundColor Red ; Pause ; Exit }
 
-# ================= STEP 2: LOGIN SYSTEM =================
+# ================= LOGIN =================
 Clear-Host
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "     FiveM Boost FPS PRO EXTREME" -ForegroundColor Cyan
+Write-Host "     FiveM Boost FPS PRO EXTREME V.7" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host " Shop: $SHOP_NAME"
-Write-Host ""
-
 $license = Read-Host "Enter License Key"
 
-# 👉 ส่ง Request พร้อม Session ID ที่ได้จาก Step 1
-$login_url = "$($KEYAUTH_API)?type=license&key=$license&hwid=$HWID&sessionid=$sessionid&name=$APP_NAME&ownerid=$OWNER_ID"
-
 try {
-    $res = Invoke-RestMethod -Uri $login_url -Method GET
-    
-    if ($res.success -ne $true) {
-        Write-Host "ERROR: $($res.message)" -ForegroundColor Red
-        Pause ; Exit
-    }
-} catch {
-    Write-Host "ERROR: Login request failed." -ForegroundColor Red
-    Pause ; Exit
-}
-
-Write-Host "License verified successfully! Welcome." -ForegroundColor Green
-Start-Sleep -Seconds 1
+    $res = Invoke-RestMethod -Uri "$($KEYAUTH_API)?type=license&key=$license&hwid=$HWID&sessionid=$sessionid&name=$APP_NAME&ownerid=$OWNER_ID" -Method GET
+    if ($res.success -ne $true) { Write-Host "ERROR: $($res.message)" -ForegroundColor Red ; Pause ; Exit }
+} catch { Write-Host "Login Failed." -ForegroundColor Red ; Pause ; Exit }
 
 # ================= MENU =================
 do {
     Clear-Host
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "     FiveM Boost FPS PRO - EXTREME" -ForegroundColor Cyan
+    Write-Host "   ULTIMATE V.7 (FULL PERFORMANCE + SYSTEM)" -ForegroundColor Cyan
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "[1] BOOST FPS (EXTREME MODE)"
-    Write-Host "[2] RESTORE DEFAULT SETTINGS"
-    Write-Host "[3] SHOW MEMORY STATUS (MMAgent)"
+    Write-Host "[1] ENABLE ALL TWEAKS (FORCE OVERWRITE)"
+    Write-Host "[2] RESTORE SYSTEM DEFAULTS"
+    Write-Host "[3] SHOW STATUS (MMAGENT/MEM/NETWORK)"
+    Write-Host "[4] CHECK CPU TEMPERATURE"
+    Write-Host "[5] CLEAN CACHE ONLY (TEMP/FIVEM)"
     Write-Host "[0] EXIT"
     Write-Host ""
-
     $choice = Read-Host "Select option"
 
     switch ($choice) {
         "1" {
-            Write-Host "`nEnabling EXTREME performance mode..." -ForegroundColor Yellow
-            Disable-MMAgent -MemoryCompression
-            Stop-Service SysMain -Force -ErrorAction SilentlyContinue
-            Set-Service SysMain -StartupType Disabled
-            powercfg -setactive SCHEME_MIN
+            Write-Host "`n[!] Applying All Tweaks (Force Overwrite)..." -ForegroundColor Yellow
             
-            # Registry Tweaks
-            reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v SystemResponsiveness /t REG_DWORD /d 0 /f >$null
-            reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" /v "Scheduling Category" /t REG_SZ /d High /f >$null
-            reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" /v "Priority" /t REG_DWORD /d 6 /f >$null
-            reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" /v "GPU Priority" /t REG_DWORD /d 8 /f >$null
-            reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v PowerThrottlingOff /t REG_DWORD /d 1 /f >$null
-            reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v DisablePagingExecutive /t REG_DWORD /d 1 /f >$null
-            
-            # Mouse & Game Mode
-            reg add "HKCU\Control Panel\Mouse" /v MouseSpeed /t REG_SZ /d 0 /f >$null
-            reg add "HKCU\System\GameConfigStore" /v GameDVR_Enabled /t REG_DWORD /d 0 /f >$null
-            
-            foreach ($s in "DiagTrack","MapsBroker","lfsvc","SharedAccess") {
-                Stop-Service $s -Force -ErrorAction SilentlyContinue
-                Set-Service $s -StartupType Disabled -ErrorAction SilentlyContinue
+            # --- 1. MMAgent & Memory Tweaks ---
+            Enable-MMAgent -ApplicationLaunchPrefetching -ApplicationPreLaunch -MemoryCompression -PageCombining
+            reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Store/Operational" /v "MaxOperationAPIFiles" /t REG_DWORD /d 512 /f >$null
+
+            # --- 2. Advanced Network & Latency ---
+            reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "NetworkThrottlingIndex" /t REG_DWORD /d 0xFFFFFFFF /f >$null
+            $interfaces = "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"
+            Get-ChildItem -Path "Registry::$interfaces" | ForEach-Object {
+                $p = $_.Name.Replace("HKEY_LOCAL_MACHINE", "HKLM")
+                reg add "$p" /v "TcpAckFrequency" /t REG_DWORD /d 1 /f >$null
+                reg add "$p" /v "TCPNoDelay" /t REG_DWORD /d 1 /f >$null
+                reg add "$p" /v "TcpDelAckTicks" /t REG_DWORD /d 0 /f >$null
             }
-            Write-Host "EXTREME mode enabled. Please restart your PC." -ForegroundColor Green
+            netsh int tcp set global autotuninglevel=normal
+            netsh int tcp set global timestamps=disabled
+
+            # --- 3. CPU, GPU & Power Priority ---
+            powercfg -setacvalueindex scheme_current sub_processor cpmincores 100
+            powercfg -setactive scheme_current
+            reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d 38 /f >$null
+            reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d 1 /f >$null
+            reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d 2 /f >$null
+            $fivemPerf = "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\FiveM.exe\PerfOptions"
+            if (!(Test-Path $fivemPerf)) { New-Item -Path $fivemPerf -Force >$null }
+            reg add "$fivemPerf" /v "CpuPriorityClass" /t REG_DWORD /d 3 /f >$null
+
+            # --- 4. Disable Windows Bloatware (Update/Defender/DVR) ---
+            Stop-Service wuauserv -Force -ErrorAction SilentlyContinue
+            Set-Service wuauserv -StartupType Disabled
+            Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+            reg add "HKCU\System\GameConfigStore" /v "GameDVR_FSEBehavior" /t REG_DWORD /d 2 /f >$null
+
+            # --- 5. Visual & System Speed ---
+            reg add "HKCU\Control Panel\Desktop" /v "MenuShowDelay" /t REG_SZ /d 0 /f >$null
+            reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "WaitToKillServiceTimeout" /t REG_SZ /d 2000 /f >$null
+
+            # --- 6. Cleaner ---
+            $CleanPaths = @("$env:TEMP\*", "$env:SystemRoot\Temp\*", "$env:SystemRoot\Prefetch\*")
+            foreach ($path in $CleanPaths) { Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue }
+
+            Write-Host "ULTIMATE V.7 SUCCESS: All Tweaks Applied!" -ForegroundColor Green
             Pause
         }
+
         "2" {
-            Write-Host "`nRestoring default system settings..." -ForegroundColor Yellow
-            Enable-MMAgent -MemoryCompression
-            Set-Service SysMain -StartupType Automatic
-            Start-Service SysMain -ErrorAction SilentlyContinue
+            Write-Host "`n[!] Restoring System Defaults..." -ForegroundColor Yellow
+            Set-Service wuauserv -StartupType Automatic
+            Set-MpPreference -DisableRealtimeMonitoring $false -ErrorAction SilentlyContinue
             powercfg -setactive SCHEME_BALANCED
-            reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v SystemResponsiveness /t REG_DWORD /d 20 /f >$null
-            Write-Host "System settings restored." -ForegroundColor Green
+            reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d 2 /f >$null
+            Write-Host "Restore Completed." -ForegroundColor Green
             Pause
         }
-        "3" { Get-MMAgent | Format-List; Pause }
+
+        "3" {
+            Write-Host "`n--- Current System Status ---" -ForegroundColor Cyan
+            $agent = Get-MMAgent
+            $maxFiles = (Get-ItemProperty "HKLM\Software\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Store/Operational" -Name MaxOperationAPIFiles -ErrorAction SilentlyContinue).MaxOperationAPIFiles
+            $netThrottle = (Get-ItemProperty "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name NetworkThrottlingIndex -ErrorAction SilentlyContinue).NetworkThrottlingIndex
+            
+            Write-Host "ApplicationLaunchPrefetching : $($agent.ApplicationLaunchPrefetching)"
+            Write-Host "ApplicationPreLaunch         : $($agent.ApplicationPreLaunch)"
+            Write-Host "MaxOperationAPIFiles         : $($maxFiles)"
+            Write-Host "MemoryCompression            : $($agent.MemoryCompression)"
+            Write-Host "PageCombining                : $($agent.PageCombining)"
+            Write-Host "NetworkThrottling (Ping Tweak): $($netThrottle)"
+            Write-Host "PSComputerName               : $($agent.PSComputerName)"
+            Pause
+        }
+
+        "4" {
+            Write-Host "`n[!] Checking CPU Temperature..." -ForegroundColor Yellow
+            try {
+                $tempK = (Get-CimInstance -Namespace root/WMI -ClassName MSAcpi_ThermalZoneTemperature).CurrentTemperature
+                $tempC = ($tempK / 10) - 273.15
+                Write-Host "Current CPU Temperature: $([Math]::Round($tempC, 2)) °C" -ForegroundColor Cyan
+            } catch { Write-Host "Temperature data not available on this Hardware." -ForegroundColor Red }
+            Pause
+        }
+
+        "5" {
+            Write-Host "`n[!] Cleaning Cache..." -ForegroundColor Yellow
+            Remove-Item "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
+            $fivemCache = "$env:LocalAppData\FiveM\FiveM.app\data\cache"
+            if (Test-Path $fivemCache) { Remove-Item "$fivemCache\*" -Recurse -Force -ErrorAction SilentlyContinue }
+            Write-Host "System & FiveM Cache Cleaned." -ForegroundColor Green
+            Pause
+        }
+
         "0" { Exit }
     }
 } while ($choice -ne "0")
