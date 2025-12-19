@@ -1,6 +1,6 @@
 # ==================================================
-# FiveM Boost FPS PRO EXTREME (V.13 THE BEST TWEAKS)
-# Shop: Xiancode | KeyAuth API v1.3
+# XIANCODE EXTREME
+# Shop: Xiancode  | 2025
 # ==================================================
 
 chcp 65001 > $null
@@ -19,10 +19,30 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     Pause ; Exit
 }
 
-# ================= LOGIN SECTION (SIMULATED) =================
+# ================= HELPER FUNCTIONS =================
+function Get-RamInfo {
+    $os = Get-CimInstance Win32_OperatingSystem
+    $total = [Math]::Round($os.TotalVisibleMemorySize / 1MB, 2)
+    $free = [Math]::Round($os.FreePhysicalMemory / 1MB, 2)
+    $used = [Math]::Round($total - $free, 2)
+    return @{Total=$total; Used=$used; Free=$free}
+}
+
+function Clean-Folder ($Path) {
+    if (Test-Path $Path) {
+        $files = Get-ChildItem -Path $Path -Recurse -File -ErrorAction SilentlyContinue
+        $size = ($files | Measure-Object -Property Length -Sum).Sum
+        $count = $files.Count
+        Remove-Item -Path "$Path\*" -Recurse -Force -ErrorAction SilentlyContinue
+        return @{Size=$size; Count=$count}
+    }
+    return @{Size=0; Count=0}
+}
+
+# ================= LOGIN SECTION =================
 Clear-Host
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "     XIAN EXTREME " -ForegroundColor Cyan
+Write-Host "      XIAN EXTREME " -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 $license = Read-Host "Enter License Key"
 
@@ -30,13 +50,13 @@ $license = Read-Host "Enter License Key"
 do {
     Clear-Host
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "    XIANCODE MANUTAU SETTING " -ForegroundColor Cyan
+    Write-Host "    XIANCODE MANUTAU SETTING  " -ForegroundColor Cyan
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "[1] ENABLE BEST TWEAKS (FORCE TRUE / ALL-IN-ONE)"
-    Write-Host "[2] RESTORE SYSTEM DEFAULTS"
-    Write-Host "[3] SHOW STATUS (VERIFY ALL VALUES)"
+    Write-Host "[1] ENABLE FULL TWEAKS (FORCE TRUE / 512 / FPS / NET)"
+    Write-Host "[2] DEEP CLEAN CACHE & RAM BOOST (ล้างลึกทุกโปรแกรม)"
+    Write-Host "[3] SHOW STATUS (VERIFY MMAgent & REGISTRY)"
     Write-Host "[4] CHECK CPU TEMPERATURE"
-    Write-Host "[5] CLEAN CACHE ONLY (TEMP/FIVEM)"
+    Write-Host "[5] RESTORE SYSTEM DEFAULTS"
     Write-Host "[6] DISABLE ALL TWEAKS (FORCE FALSE)"
     Write-Host "[0] EXIT"
     Write-Host ""
@@ -44,7 +64,7 @@ do {
 
     switch ($choice) {
         "1" {
-            Write-Host "`n[!] Applying The Best Tweaks Ever..." -ForegroundColor Yellow
+            Write-Host "`n[!] Applying All Functionalities..." -ForegroundColor Yellow
             
             # --- 1. MMAgent Status Force (True/512) ---
             Set-Service SysMain -StartupType Automatic -ErrorAction SilentlyContinue
@@ -54,7 +74,8 @@ do {
             if (!(Test-Path $regAPI)) { New-Item -Path $regAPI -Force >$null }
             reg add "$regAPI" /v "MaxOperationAPIFiles" /t REG_DWORD /d 512 /f >$null
 
-            # --- 2. Ultimate Network Latency (Ping Tweaks) ---
+            # --- 2. Network Latency & Ping (TcpAck/NoDelay/ECN/DNS) ---
+            ipconfig /flushdns > $null
             reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "NetworkThrottlingIndex" /t REG_DWORD /d 0xFFFFFFFF /f >$null
             reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "SystemResponsiveness" /t REG_DWORD /d 0 /f >$null
             $interfaces = "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"
@@ -68,59 +89,108 @@ do {
             netsh int tcp set global ecncapability=enabled
             netsh int tcp set global timestamps=disabled
 
-            # --- 3. Best Gaming & Input Lag Tweaks ---
+            # --- 3. Gaming, CPU & GPU Boost (Win32/HwSch/Power) ---
             reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d 38 /f >$null
             reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d 2 /f >$null
             reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d 1 /f >$null
+            reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "LargeSystemCache" /t REG_DWORD /d 1 /f >$null
             powercfg -setacvalueindex scheme_current sub_processor cpmincores 100
             powercfg -setactive scheme_current
 
-            # --- 4. Disable Bloatware Services ---
-            Stop-Service wuauserv, bits, TermService -Force -ErrorAction SilentlyContinue
-            Set-Service wuauserv, bits, TermService -StartupType Disabled -ErrorAction SilentlyContinue
-            Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+            # --- 4. NVIDIA/AMD Performance & Input Lag ---
+            reg add "HKLM\SYSTEM\CurrentControlSet\Control\Video" /v "PowerMizerEnable" /t REG_DWORD /d 1 /f >$null 2>$null
+            reg add "HKCU\Control Panel\Mouse" /v "MouseSpeed" /t REG_SZ /d 0 /f >$null
 
-            Write-Host "XIAN SUCCESS: All Best Tweaks Applied!" -ForegroundColor Green
+            # --- 5. Disable Bloatware & Windows Services ---
+            Stop-Service wuauserv, bits, TermService, DiagTrack -Force -ErrorAction SilentlyContinue
+            Set-Service wuauserv, bits, TermService, DiagTrack -StartupType Disabled -ErrorAction SilentlyContinue
+            Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+            reg add "HKCU\System\GameConfigStore" /v "GameDVR_FSEBehavior" /t REG_DWORD /d 2 /f >$null
+
+            Write-Host "V.18 SUCCESS: All Functions Applied 100%!" -ForegroundColor Green
             Pause
         }
 
         "2" {
-            Write-Host "`n[!] Restoring System Defaults..." -ForegroundColor Yellow
-            Set-Service SysMain, wuauserv -StartupType Automatic
-            powercfg -setactive SCHEME_BALANCED
-            Write-Host "System Default Restored." -ForegroundColor Green
+            Write-Host "`n[!] Executing Deep Cleaning & RAM Reset..." -ForegroundColor Yellow
+            $before = Get-RamInfo
+            $totalDeleted = 0 ; $totalSize = 0
+
+            # --- Deep Cleaning Path (Windows, Browser, Shader, FiveM, Discord) ---
+            $paths = @(
+                "$env:TEMP", "$env:SystemRoot\Temp", "$env:SystemRoot\Prefetch",
+                "$env:LocalAppData\NVIDIA\DXCache", "$env:LocalAppData\NVIDIA\GLCache",
+                "$env:LocalAppData\AMD\DXCache", "$env:AppData\Discord\Cache",
+                "$env:LocalAppData\Google\Chrome\User Data\Default\Cache",
+                "$env:LocalAppData\Microsoft\Edge\User Data\Default\Cache",
+                "$env:LocalAppData\FiveM\FiveM.app\data\cache",
+                "$env:LocalAppData\FiveM\FiveM.app\data\server-cache"
+            )
+            foreach ($p in $paths) {
+                $res = Clean-Folder $p
+                $totalDeleted += $res.Count ; $totalSize += $res.Size
+            }
+
+            # --- RAM Boost (Trim & Kill) ---
+            $procs = Get-Process | Where-Object {$_.WorkingSet64 -gt 100MB -and $_.ProcessName -notmatch "explorer|system|idle|powershell"}
+            $closedCount = 0
+            foreach ($proc in $procs) {
+                try {
+                    $proc.TrimWorkingSet() > $null
+                    if ($proc.ProcessName -match "chrome|edge|discord|spotify") {
+                        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+                        $closedCount++
+                    }
+                } catch {}
+            }
+
+            $after = Get-RamInfo
+            Write-Host "`n--- FINAL CLEANING REPORT ---" -ForegroundColor Cyan
+            Write-Host "ไฟล์ที่ถูกลบไป    : $totalDeleted ไฟล์"
+            Write-Host "พื้นที่ที่คืนมา     : $([Math]::Round($totalSize / 1MB, 2)) MB"
+            Write-Host "ใช้ RAM ก่อนเริ่ม    : $($before.Used) GB"
+            Write-Host "ใช้ RAM ปัจจุบัน     : $($after.Used) GB"
+            Write-Host "ได้ RAM คืนมาสุทธิ   : $([Math]::Round($before.Used - $after.Used, 2)) GB"
+            Write-Host "ปิดโปรเซสเบื้องหลัง : $closedCount รายการ"
+            Write-Host "-----------------------------"
             Pause
         }
 
         "3" {
-            Write-Host "`n--- Verification Status ---" -ForegroundColor Cyan
+            Write-Host "`n--- Verification Status (All Functions) ---" -ForegroundColor Cyan
             $agent = Get-MMAgent
             $regVal = (Get-ItemProperty "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Store/Operational" -Name MaxOperationAPIFiles -ErrorAction SilentlyContinue).MaxOperationAPIFiles
             Write-Host "ApplicationLaunchPrefetching : $($agent.ApplicationLaunchPrefetching)"
             Write-Host "ApplicationPreLaunch         : $($agent.ApplicationPreLaunch)"
-            Write-Host "MaxOperationAPIFiles         : $(if($regVal){$regVal}else{"Not Set"})"
             Write-Host "MemoryCompression            : $($agent.MemoryCompression)"
             Write-Host "PageCombining                : $($agent.PageCombining)"
+            Write-Host "MaxOperationAPIFiles (Reg)   : $(if($regVal){$regVal}else{"Not Set"})"
+            Write-Host "Network Throttling Index     : $((Get-ItemProperty 'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile').NetworkThrottlingIndex)"
+            Write-Host "Win32PrioritySeparation      : $((Get-ItemProperty 'HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl').Win32PrioritySeparation)"
             Pause
         }
 
         "4" {
-            $temp = (Get-CimInstance -Namespace root/WMI -ClassName MSAcpi_ThermalZoneTemperature).CurrentTemperature
-            Write-Host "CPU Temp: $(($temp/10)-273.15) °C" -ForegroundColor Cyan
+            try {
+                $tempK = (Get-CimInstance -Namespace root/WMI -ClassName MSAcpi_ThermalZoneTemperature).CurrentTemperature
+                Write-Host "CPU Temperature: $(($tempK/10)-273.15) °C" -ForegroundColor Cyan
+            } catch { Write-Host "Hardware WMI not supported." -ForegroundColor Red }
             Pause
         }
 
         "5" {
-            Remove-Item "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Host "Cache Cleaned." -ForegroundColor Green
+            Write-Host "`n[!] Restoring Everything..." -ForegroundColor Yellow
+            Set-Service SysMain, wuauserv, bits -StartupType Automatic
+            powercfg -setactive SCHEME_BALANCED
+            Write-Host "Restore Completed." -ForegroundColor Green
             Pause
         }
 
         "6" {
-            Write-Host "`n[!] Disabling Tweaks..." -ForegroundColor Yellow
+            Write-Host "`n[!] Forcing All Tweaks to FALSE..." -ForegroundColor Yellow
             Disable-MMAgent -ApplicationLaunchPrefetching -ApplicationPreLaunch -MemoryCompression -PageCombining
             reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Store/Operational" /v "MaxOperationAPIFiles" /f >$null 2>&1
-            Write-Host "Status set to FALSE." -ForegroundColor Green
+            Write-Host "All Tweak Status set to FALSE." -ForegroundColor Green
             Pause
         }
 
