@@ -1,24 +1,73 @@
 # ==================================================
-# XIANCODE EXTREME
+# XIANCODE EXTREME - ULTIMATE OPTIMIZER
 # Shop: Xiancode  | 2025
 # ==================================================
-
 chcp 65001 > $null
 $OutputEncoding = [System.Text.Encoding]::UTF8
-
 # ================= KEYAUTH CONFIG =================
 function _d($x) { [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($x)) }
+# FILL IN YOUR APP SECRET HERE
 $APP_NAME = _d("WGlhbkVYVFJFTUU=") 
 $OWNER_ID = _d("blpjZDN4MkVYOQ==") 
+$APP_SECRET = "9b0a1bb14b2691321ea81ffc4fafb080213bc6cc1355babdf0db5969bf8ffbb7" # <--- PUT YOUR KEYAUTH APPLICATION SECRET HERE
 $VERSION  = "1.0"
 $KEYAUTH_API = "https://keyauth.win/api/1.3/"
-
 # ================= ADMIN CHECK =================
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Host "ERROR: Please run PowerShell as Administrator." -ForegroundColor Red
     Pause ; Exit
 }
-
+# ================= KEYAUTH SYSTEM =================
+function Login-KeyAuth {
+    param ($LicenseKey)
+    
+    Write-Host "[!] Connecting to Server..." -ForegroundColor Yellow
+    
+    # 1. INIT
+    $initBody = @{
+        type = "init"
+        ver = $VERSION
+        name = $APP_NAME
+        ownerid = $OWNER_ID
+        # secret = $APP_SECRET # Uncomment if secret is required by your KeyAuth app version
+    }
+    
+    try {
+        $initResponse = Invoke-RestMethod -Uri $KEYAUTH_API -Method Post -Body $initBody -ErrorAction Stop
+        
+        if ($initResponse.success -ne $true) {
+            Write-Host "Server Init Failed: $($initResponse.message)" -ForegroundColor Red
+            return $false
+        }
+        
+        $sessionid = $initResponse.sessionid
+        
+        # 2. LICENSE LOGIN
+        $hwid = (Get-CimInstance win32_computersystemproduct).UUID
+        $loginBody = @{
+            type = "license"
+            key = $LicenseKey
+            hwid = $hwid
+            sessionid = $sessionid
+            name = $APP_NAME
+            ownerid = $OWNER_ID
+        }
+        
+        $loginResponse = Invoke-RestMethod -Uri $KEYAUTH_API -Method Post -Body $loginBody -ErrorAction Stop
+        
+        if ($loginResponse.success -eq $true) {
+            Write-Host "Login Success! Welcome, $($loginResponse.info.username)" -ForegroundColor Green
+            return $true
+        } else {
+            Write-Host "Login Failed: $($loginResponse.message)" -ForegroundColor Red
+            return $false
+        }
+    }
+    catch {
+        Write-Host "Connection Error: $_" -ForegroundColor Red
+        return $false
+    }
+}
 # ================= HELPER FUNCTIONS =================
 function Get-RamInfo {
     $os = Get-CimInstance Win32_OperatingSystem
@@ -27,7 +76,6 @@ function Get-RamInfo {
     $used = [Math]::Round($total - $free, 2)
     return @{Total=$total; Used=$used; Free=$free}
 }
-
 function Clean-Folder ($Path) {
     if (Test-Path $Path) {
         $files = Get-ChildItem -Path $Path -Recurse -File -ErrorAction SilentlyContinue
@@ -38,14 +86,66 @@ function Clean-Folder ($Path) {
     }
     return @{Size=0; Count=0}
 }
-
+function Optimize-Network {
+    Write-Host "   >>> Optimizing Network Stack..." -ForegroundColor Cyan
+    # TCP Optimizations
+    $tcpParams = @{
+        "TcpAckFrequency" = 1
+        "TCPNoDelay" = 1
+        "TcpDelAckTicks" = 0
+    }
+    
+    $interfaces = "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"
+    Get-ChildItem -Path "Registry::$interfaces" | ForEach-Object {
+        $p = $_.Name.Replace("HKEY_LOCAL_MACHINE", "HKLM")
+        foreach ($key in $tcpParams.Keys) {
+            reg add "$p" /v "$key" /t REG_DWORD /d $tcpParams[$key] /f >$null 2>&1
+        }
+    }
+    # Custom optimizations for lower latency
+    netsh int tcp set global autotuninglevel=normal
+    netsh int tcp set global rss=enabled
+    netsh int tcp set global rsc=disabled
+    netsh int tcp set global chimneymonitor=disabled
+    netsh int tcp set global ecncapability=enabled
+    netsh int tcp set global timestamps=disabled
+    netsh int tcp set global nonsackrttresiliency=disabled
+    netsh int tcp set global initialrto=2000
+    netsh int tcp set global rtoversions=1
+}
+function Optimize-InputLag {
+    Write-Host "   >>> Reducing Input Lag..." -ForegroundColor Cyan
+    # Keyboard Queue Size
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\kbdclass\Parameters" /v "KeyboardDataQueueSize" /t REG_DWORD /d 50 /f >$null 2>&1
+    # Mouse Queue Size
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\mouclass\Parameters" /v "MouseDataQueueSize" /t REG_DWORD /d 50 /f >$null 2>&1
+    # Priority Control
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d 38 /f >$null 2>&1
+    # Disable Mouse Acceleration
+    reg add "HKCU\Control Panel\Mouse" /v "MouseSpeed" /t REG_SZ /d "0" /f >$null 2>&1
+    reg add "HKCU\Control Panel\Mouse" /v "MouseThreshold1" /t REG_SZ /d "0" /f >$null 2>&1
+    reg add "HKCU\Control Panel\Mouse" /v "MouseThreshold2" /t REG_SZ /d "0" /f >$null 2>&1
+}
+function Optimize-Visuals {
+    Write-Host "   >>> Optimizing Visual Effects (Best Performance)..." -ForegroundColor Cyan
+    # VisualFXSetting = 2 (Adjust for best performance)
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d 2 /f >$null 2>&1
+    # Disable Window Animations
+    reg add "HKCU\Control Panel\Desktop\WindowMetrics" /v "MinAnimate" /t REG_SZ /d "0" /f >$null 2>&1
+    # Disable Taskbar Animations
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarAnimations" /t REG_DWORD /d 0 /f >$null 2>&1
+}
 # ================= LOGIN SECTION =================
 Clear-Host
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "      XIAN EXTREME " -ForegroundColor Cyan
+Write-Host "      XIAN EXTREME  | LOCKED " -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 $license = Read-Host "Enter License Key"
-
+if (-not (Login-KeyAuth -LicenseKey $license)) {
+    Write-Host "Exiting..."
+    Start-Sleep -Seconds 2
+    Exit
+}
 # ================= MENU =================
 do {
     Clear-Host
@@ -61,7 +161,6 @@ do {
     Write-Host "[0] EXIT"
     Write-Host ""
     $choice = Read-Host "Select option"
-
     switch ($choice) {
         "1" {
             Write-Host "`n[!] Applying All Functionalities..." -ForegroundColor Yellow
@@ -73,49 +172,41 @@ do {
             $regAPI = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Store/Operational"
             if (!(Test-Path $regAPI)) { New-Item -Path $regAPI -Force >$null }
             reg add "$regAPI" /v "MaxOperationAPIFiles" /t REG_DWORD /d 512 /f >$null
-
-            # --- 2. Network Latency & Ping (TcpAck/NoDelay/ECN/DNS) ---
+            # --- 2. Network Latency & Ping ---
             ipconfig /flushdns > $null
+            # Network Throttling
             reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "NetworkThrottlingIndex" /t REG_DWORD /d 0xFFFFFFFF /f >$null
             reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v "SystemResponsiveness" /t REG_DWORD /d 0 /f >$null
-            $interfaces = "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"
-            Get-ChildItem -Path "Registry::$interfaces" | ForEach-Object {
-                $p = $_.Name.Replace("HKEY_LOCAL_MACHINE", "HKLM")
-                reg add "$p" /v "TcpAckFrequency" /t REG_DWORD /d 1 /f >$null
-                reg add "$p" /v "TCPNoDelay" /t REG_DWORD /d 1 /f >$null
-                reg add "$p" /v "TcpDelAckTicks" /t REG_DWORD /d 0 /f >$null
-            }
-            netsh int tcp set global autotuninglevel=normal
-            netsh int tcp set global ecncapability=enabled
-            netsh int tcp set global timestamps=disabled
-
+            
+            # Run helper
+            Optimize-Network
             # --- 3. Gaming, CPU & GPU Boost (Win32/HwSch/Power) ---
-            reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d 38 /f >$null
             reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d 2 /f >$null
             reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d 1 /f >$null
             reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "LargeSystemCache" /t REG_DWORD /d 1 /f >$null
-            powercfg -setacvalueindex scheme_current sub_processor cpmincores 100
-            powercfg -setactive scheme_current
-
-            # --- 4. NVIDIA/AMD Performance & Input Lag ---
+            
+            # Optimize Input Lag Helper
+            Optimize-InputLag
+            Optimize-Visuals
+            # --- 4. NVIDIA/AMD Performance ---
             reg add "HKLM\SYSTEM\CurrentControlSet\Control\Video" /v "PowerMizerEnable" /t REG_DWORD /d 1 /f >$null 2>$null
-            reg add "HKCU\Control Panel\Mouse" /v "MouseSpeed" /t REG_SZ /d 0 /f >$null
-
+            
             # --- 5. Disable Bloatware & Windows Services ---
-            Stop-Service wuauserv, bits, TermService, DiagTrack -Force -ErrorAction SilentlyContinue
-            Set-Service wuauserv, bits, TermService, DiagTrack -StartupType Disabled -ErrorAction SilentlyContinue
+            $services = @("wuauserv", "bits", "TermService", "DiagTrack", "MapsBroker", "lfsvc", "Fax", "Spooler")
+            foreach ($s in $services) {
+                Stop-Service $s -Force -ErrorAction SilentlyContinue
+                Set-Service $s -StartupType Disabled -ErrorAction SilentlyContinue
+            }
             Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
             reg add "HKCU\System\GameConfigStore" /v "GameDVR_FSEBehavior" /t REG_DWORD /d 2 /f >$null
-
+            reg add "HKCU\System\GameConfigStore" /v "GameDVR_Enabled" /t REG_DWORD /d 0 /f >$null
             Write-Host "V.18 SUCCESS: All Functions Applied 100%!" -ForegroundColor Green
             Pause
         }
-
         "2" {
             Write-Host "`n[!] Executing Deep Cleaning & RAM Reset..." -ForegroundColor Yellow
             $before = Get-RamInfo
             $totalDeleted = 0 ; $totalSize = 0
-
             # --- Deep Cleaning Path (Windows, Browser, Shader, FiveM, Discord) ---
             $paths = @(
                 "$env:TEMP", "$env:SystemRoot\Temp", "$env:SystemRoot\Prefetch",
@@ -130,7 +221,6 @@ do {
                 $res = Clean-Folder $p
                 $totalDeleted += $res.Count ; $totalSize += $res.Size
             }
-
             # --- RAM Boost (Trim & Kill) ---
             $procs = Get-Process | Where-Object {$_.WorkingSet64 -gt 100MB -and $_.ProcessName -notmatch "explorer|system|idle|powershell"}
             $closedCount = 0
@@ -143,7 +233,7 @@ do {
                     }
                 } catch {}
             }
-
+            [GC]::Collect()
             $after = Get-RamInfo
             Write-Host "`n--- FINAL CLEANING REPORT ---" -ForegroundColor Cyan
             Write-Host "ไฟล์ที่ถูกลบไป    : $totalDeleted ไฟล์"
@@ -155,7 +245,6 @@ do {
             Write-Host "-----------------------------"
             Pause
         }
-
         "3" {
             Write-Host "`n--- Verification Status (All Functions) ---" -ForegroundColor Cyan
             $agent = Get-MMAgent
@@ -169,7 +258,6 @@ do {
             Write-Host "Win32PrioritySeparation      : $((Get-ItemProperty 'HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl').Win32PrioritySeparation)"
             Pause
         }
-
         "4" {
             try {
                 $tempK = (Get-CimInstance -Namespace root/WMI -ClassName MSAcpi_ThermalZoneTemperature).CurrentTemperature
@@ -177,15 +265,16 @@ do {
             } catch { Write-Host "Hardware WMI not supported." -ForegroundColor Red }
             Pause
         }
-
         "5" {
             Write-Host "`n[!] Restoring Everything..." -ForegroundColor Yellow
-            Set-Service SysMain, wuauserv, bits -StartupType Automatic
+            Set-Service SysMain, wuauserv, bits, Spooler -StartupType Automatic
+            Start-Service wuauserv, bits, Spooler -ErrorAction SilentlyContinue
             powercfg -setactive SCHEME_BALANCED
+            netsh int tcp set global autotuninglevel=normal
+            netsh int tcp set global rss=enabled
             Write-Host "Restore Completed." -ForegroundColor Green
             Pause
         }
-
         "6" {
             Write-Host "`n[!] Forcing All Tweaks to FALSE..." -ForegroundColor Yellow
             Disable-MMAgent -ApplicationLaunchPrefetching -ApplicationPreLaunch -MemoryCompression -PageCombining
@@ -193,7 +282,6 @@ do {
             Write-Host "All Tweak Status set to FALSE." -ForegroundColor Green
             Pause
         }
-
         "0" { Exit }
     }
 } while ($choice -ne "0")
